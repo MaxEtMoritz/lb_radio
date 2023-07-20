@@ -1,0 +1,5 @@
+@media (min-width: 576px){
+    #now_playing div.col-sm-3{
+    width: fit-content;
+    }
+}

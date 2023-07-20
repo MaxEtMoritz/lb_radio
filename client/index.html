@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LBRadio</title>
+    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="style.css"/>
+    <link rel="icon" href="about:blank" />
+  </head>
+  <body>
+    <header>
+      <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">LB Radio</a>
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">Home</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modal">Settings</a>
+              </li>
+              <!-- <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"> Dropdown </a>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#">Action</a></li>
+                  <li><a class="dropdown-item" href="#">Another action</a></li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li><a class="dropdown-item" href="#">Something else here</a></li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link disabled">Disabled</a>
+              </li> -->
+            </ul>
+            <!-- <form class="d-flex" role="search">
+              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
+              <button class="btn btn-outline-success" type="submit">Search</button>
+            </form> -->
+          </div>
+        </div>
+      </nav>
+    </header>
+    <main class="container-fluid">
+      <div class="modal modal-fullscreen-sm-down" tabindex="-1" id="modal">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title h5">Settings</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="settings-form" action="javascript:saveSettings();" autocomplete="off">
+                <div class="mb-3">
+                  <label for="lb_token" class="form-label">ListenBrainz Access Token</label>
+                  <input
+                    type="text"
+                    id="lb_token"
+                    aria-describedby="token_help"
+                    class="form-control"
+                    required
+                    minlength="36"
+                    maxlength="36"
+                    onblur="this.setCustomValidity('');this.parentElement.parentElement.classList.remove('was-validated')"
+                  />
+                  <div id="token_help" class="form-text">Visit <a href="https://listenbrainz.org/profile" target="_blank" class="link-dark">ListenBrainz profile page</a> to obtain it.</div>
+                </div>
+                <div class="mb-3">
+                  <label for="poll_interval" class="form-label">Polling Interval</label>
+                  <div class="d-flex">
+                    <input
+                      type="range"
+                      id="poll_interval"
+                      aria-describedby="poll_help"
+                      class="form-range"
+                      required
+                      value="30"
+                      min="10"
+                      max="120"
+                      onchange="this.nextElementSibling.firstElementChild.innerText = this.value;"
+                    />
+                    <span class="ps-3"><span id="slider_value">30</span>&#8239;s</span>
+                  </div>
+                  <div id="poll_help" class="form-text">Longer polling intervals take load off the server, shorter ones lead to more real-time "now playing" notifications.</div>
+                </div>
+                <div class="mb-3">
+                  <label for="regex" class="form-label">Regular expression for title / artist extraction</label>
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      id="regex"
+                      aria-describedby="regex-help"
+                      value="^(?&lt;artist&gt;.+) - (?&lt;title&gt;.+)$"
+                      class="form-control"
+                      onchange="document.getElementById('regex101').href=`https://regex101.com/?flavor=javascript&regex=${encodeURIComponent(this.value)}&flags=`;"
+                      required
+                      onblur="this.setCustomValidity('');this.parentElement.parentElement.parentElement.classList.remove('was-validated')"
+                    />
+                    <button type="button" class="btn btn-outline-secondary" onclick="var field = document.getElementById('regex');field.value = field.defaultValue;">Reset to default</button>
+                  </div>
+                  <div class="form-text" id="regex-help">
+                    You can test the regex e.g. on <a class="link-dark" id="regex101" href="https://regex101.com/?flavor=javascript&flags=" target="_blank">Regex101</a>.
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <h2>Regex Hints</h2>
+                  <div class="alert alert-info">
+                    The Regex must contain the named capturing groups artist (<code>(?&lt;artist&gt;.+)</code>) and title (<code>(?&lt;title&gt;.+)</code>). The <code>.+</code> inside are just
+                    examples, you can adapt them to your needs.
+                  </div>
+                  <p>To explore the power of regular expressions, you can browse through <a class="link-primary" href="https://regex101.com/?flavor=javascript&flags=" target="_blank">Regex101</a>.</p>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="submit" form="settings-form" class="btn btn-primary">Save changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h1>Hello world!</h1>
+      <h2>Pinned Stations</h2>
+      <div class="container-lg"><div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4" id="pins">No Pins yet.</div></div>
+      <form action="javascript:searchRadioStations();">
+        <div class="mb-3">
+          <label for="stationName">Search Radio Stations</label>
+          <div class="input-group">
+            <input type="text" id="stationName" class="form-control" />
+            <button type="submit" id="go" class="btn btn-primary">Search</button>
+          </div>
+        </div>
+      </form>
+
+      <table id="results" class="table align-middle">
+        <thead>
+          <tr>
+            <th>Logo</th>
+            <th>Name</th>
+            <th>Country</th>
+            <th>Website</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="5">Search to show results...</td>
+          </tr>
+        </tbody>
+        <caption>
+          Cannot find your favorite station?
+          <a href="https://www.radio-browser.info/add" target="_blank">Add its internet radio stream to the RadioBrowser Database</a>
+          (No account required).<br />After the stream was checked by RadioBrowser, the station will show up here.
+        </caption>
+      </table>
+      <h2>Playing now</h2>
+      <div class="alert alert-warning d-none" role="alert">
+        The current regular expression is not matching the "Now playing" information of the stream (<em id="rawPlayingNow"></em>).<br>
+        Consider adapting the regular expression in the <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#modal">Settings</a>.
+      </div>
+      <div id="now_playing" class="card mb-3 d-none" style="max-width: 540px">
+        <div class="row g-0">
+          <div class="col-sm-1 d-flex">
+            <a href="https://listenbrainz.org/listening-now/" class="h-100 w-100" target="_blank">
+              <img src="../node_modules/bootstrap-icons/icons/boombox.svg" id="currentImage" class="h-100 w-100 rounded">
+            </a>
+          </div>
+          <div class="col-sm-8 flex-grow-1">
+            <div class="card-body h-100 p-1">
+              <div class="card-text" style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden">
+                <b id="current_title"></b><br />
+                <small id="current_artist"></small>
+              </div>
+              <!-- <p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p> -->
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <div class="bg-body-tertiary rounded h-100 d-flex justify-content-center align-items-center">
+              <a href="javascript:love();" class="btn btn-link link-danger disabled" id="love">
+                <svg width="18" height="18" fill="currentColor" class="bi">
+                  <use xlink:href="../node_modules/bootstrap-icons/bootstrap-icons.svg#heart" />
+                </svg>
+              </a>
+              <a href="javascript:hate();" class="btn btn-link link-dark disabled" id="hate">
+                <svg width="18" height="18" fill="currentColor" class="bi">
+                  <use xlink:href="../node_modules/bootstrap-icons/bootstrap-icons.svg#heartbreak" />
+                </svg>
+              </a>
+            </div>
+          </div> 
+        </div>
+      </div>
+      <div id="nothing-playing">Nothing yet.</div>
+      <button id="stop" class="btn btn-outline-secondary">Stop Listening</button>
+    </main>
+  </body>
+</html>
