@@ -13,6 +13,7 @@ import ListenbrainzAPI from './lb_api';
 
 const rb = new RadioBrowserApi(pkg.name, true);
 let interval;
+let timeout;
 
 window.searchRadioStations = async () => {
   let stations = await rb.getStationsBy(StationSearchType.byName, pageElements.stationName.value, { hideBroken: true, limit: 30 });
@@ -48,6 +49,8 @@ window.searchRadioStations = async () => {
 
 pageElements.stop.addEventListener('click', async () => {
   clearInterval(interval);
+  if (timeout) clearTimeout(timeout);
+  timeout = null;
   pageElements.current_artist.innerText = '';
   pageElements.current_title.innerText = '';
   pageElements.love.classList.add('disabled');
@@ -244,6 +247,7 @@ async function startListening(station) {
         if (stream_meta?.nowPlaying !== json.nowPlaying) {
           pageElements.now_playing.classList.remove('d-none');
           pageElements.nothing_playing.classList.add('d-none');
+          json.listenedAt = json.listenedAt??Math.round(new Date().valueOf() / 1000)
           let lbResponse = await ListenbrainzAPI.submitListens(
             'playing_now',
             [
@@ -264,6 +268,54 @@ async function startListening(station) {
           );
           console.log(lbResponse);
           metadata = await ListenbrainzAPI.lookupMetadata(json.artist, json.title, 'release');
+
+          // if timeout not yet triggered, submit old listen now before waiting for the next one.
+          if (timeout) {
+            clearTimeout(timeout);
+            console.log('late submission');
+            await ListenbrainzAPI.submitListens(
+              'single',
+              [
+                {
+                  listened_at: stream_meta.listenedAt,
+                  track_metadata: {
+                    artist_name: stream_meta.artist,
+                    track_name: stream_meta.title,
+                    additional_info: {
+                      submission_client: pkg.name,
+                      submission_client_version: pkg.version,
+                      music_service_name: station.name,
+                      music_service: new URL(station.url).hostname
+                    }
+                  }
+                }
+              ],
+              JSONLocalStorage.lb_account.token
+            );
+          }
+
+          // set timeout for submitting a listen after minimum of 4 minutes or half the track duration (if known).
+          timeout = setTimeout(
+            payload => {
+              timeout = null;
+              console.log('normal submission', payload);
+              ListenbrainzAPI.submitListens('single', [payload], JSONLocalStorage.lb_account.token);
+            },
+            Math.min(4 * 60 * 1000, metadata?.metadata?.recording?.length/2 ?? Number.POSITIVE_INFINITY),
+            {
+              listened_at: json.listenedAt,
+              track_metadata: {
+                artist_name: json.artist,
+                track_name: json.title,
+                additional_info: {
+                  submission_client: pkg.name,
+                  submission_client_version: pkg.version,
+                  music_service_name: station.name,
+                  music_service: new URL(station.url).hostname
+                }
+              }
+            }
+          );
 
           if (metadata.recording_mbid) {
             pageElements.love.classList.remove('disabled');

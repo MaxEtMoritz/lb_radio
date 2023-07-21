@@ -74,7 +74,8 @@ app.get('/nowplaying', async (req, res) => {
       implementation: SUPPORTED_SERVERS.STREAMONKEY.description,
       nowPlaying: stats.history[0].MetaTitle,
       artist: stats.history[0].MetaArtist,
-      title: stats.history[0].MetaSong
+      title: stats.history[0].MetaSong,
+      listenedAt: Math.round(new Date(stats.history[0].InsertDate) / 1000)
     })
   }
   if (stats.icy) {
@@ -104,6 +105,6 @@ app.get('/nowplaying', async (req, res) => {
 
 require('http')
   .createServer(app)
-  .listen(80, '0.0.0.0', undefined, ev => {
+  .listen(80, undefined, undefined, ev => {
     console.log('🚀');
   });
