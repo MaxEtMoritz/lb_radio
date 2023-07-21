@@ -67,6 +67,7 @@ const icyMetaInt = Symbol();
 const icyCharacterEncoding = Symbol();
 const icyDetectionTimeout = Symbol();
 const streamonkeySessionId = Symbol();
+const historyEtag = Symbol();
 const sources = Symbol();
 const interval = Symbol();
 const onStats = Symbol();
@@ -122,6 +123,7 @@ module.exports = {
       [icyCharacterEncoding]: options.icyCharacterEncoding,
       [icyDetectionTimeout]: options.icyDetectionTimeout,
       [streamonkeySessionId]: options.streamonkeySessionId || null,
+      [historyEtag]: options.historyEtag || null,
       [icyController]: new AbortController(),
       [oggController]: new AbortController(),
       [icestatsController]: new AbortController(),
@@ -173,6 +175,13 @@ module.exports = {
      */
     get historyEndpoint() {
       return p.get(this)[historyEndpoint];
+    }
+
+    /**
+     * @returns The generated `history` etag
+     */
+    get historyEtag() {
+      return p.get(this)[historyEtag];
     }
 
     /**
@@ -385,14 +394,20 @@ module.exports = {
     }
 
     async getHistory() {
+      let headers = {
+        'Accept-Encoding': 'gzip'
+      }
+      if(p.get(this)[historyEtag])headers['If-None-Match'] = p.get(this)[historyEtag]
       return this[fetchStats]({
         status: historyFetchStatus,
         endpoint: historyEndpoint,
         controller: historyController,
-        mapper: r => (/^(?:text|application)\/json/.test(r.headers.get('content-type')) ? r.json() : undefined),
-        headers: {
-          'Accept-Encoding': 'gzip'
-        }
+        mapper: r => {
+          if(r.status !== 304)
+          p.get(this)[historyEtag] = r.headers.get('etag')??null
+          return (/^(?:text|application)\/json/.test(r.headers.get('content-type')) ? r.json() : undefined)
+        },
+        headers
       }).then(r => ({ history: r }));
     }
 
@@ -461,7 +476,7 @@ module.exports = {
           timeout: 2000
         })
           .then(res => {
-            if (!res.ok) {
+            if (!res.ok &&!res.status==304) {
               res.text().then(t => {
                 console.log(t);
               });
