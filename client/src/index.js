@@ -301,7 +301,7 @@ async function startListening(station) {
               console.log('normal submission', payload);
               ListenbrainzAPI.submitListens('single', [payload], JSONLocalStorage.lb_account.token);
             },
-            Math.min(4 * 60 * 1000, metadata?.metadata?.recording?.length/2 ?? Number.POSITIVE_INFINITY),
+            Math.min(4 * 60 * 1000, metadata?.metadata?.recording?.length?metadata.metadata.recording.length/2 : Number.POSITIVE_INFINITY),
             {
               listened_at: json.listenedAt,
               track_metadata: {
