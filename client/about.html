@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="about:blank" />
+  </head>
+  <body>
+    <header>
+      <nav class="navbar navbar-expand-sm bg-body-tertiary">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#"><%= title %></a>
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <a class="nav-link" href=".">Home</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">About</a>
+              </li>
+              <li class="nav-item" title="Return to Main page to adjust the settings.">
+                <a class="nav-link disabled" href="#">Settings</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+    </header>
+    <main class="container-xl mb-5">
+      <h1>About <%= title %></h1>
+      <p>
+        <%= title %> is a utility to submit your radio listening activity to ListenBrainz.<br />
+        since most dedicated radio receivers (i'm not talking about web radio applications or Websites for listening to Internet radio streams) are dumb devices without internet connection there is no
+        good way to submit listens done with them.<br />
+        This is where this website kicks in: When turning on the radio receiver, you can search for the radio station on here and click "Start listening". All songs this radio station is playing are
+        now submitted to ListenBrainz until you click "Stop listening" again.
+      </p>
+      <h2>FAQ</h2>
+      <h3>Who made this website?</h3>
+      <p>
+        Me, MaxEtMoritz. My <a href="https://github.com/MaxEtMoritz" target="_blank">GitHub</a> and <a href="https://www.musicbrainz.org/user/MaxEtMoritz" target="_blank">MusicBrainz</a> /
+        <a href="https://listenbrainz.org/user/MaxEtMoritz" target="_blank">ListenBrainz</a> profiles.
+      </p>
+      <h3>I can't find my favorite radio station via the search!</h3>
+      <p>For a radio station to show up, two things are needed:</p>
+      <ol>
+        <li>
+          The radio station has to offer an Internet radio stream that carries metadata about the song this station is currently broadcasting.<br />
+          You can check if your station offers an internet radio stream by visiting their website and looking if there is a way to listen the station on there.
+        </li>
+        <li>
+          This internet radio stream must be contained in the Radio Browser Database.<br />
+          If it is not, you can add it to the database without the need to create an account. just visit the RadioBrowser website and add it. When the internet radio stream was verified to be
+          functional by the RadioBrowser Database, you will be able to find your station here.
+        </li>
+      </ol>
+      <h3>Why don't i hear anything when clicking "start listening"?</h3>
+      <p>
+        This is intentional. The purpose of this web site is to submit listens done with <em>dumb, offline radio receivers</em>. If you already listen to the station via a radio receiver, you do not
+        need to hear sound on here, right?
+      </p>
+    </main>
+  </body>
+</html>

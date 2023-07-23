@@ -3,16 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LBRadio</title>
+    <title><%= title %></title>
     <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="style.css" />
     <link rel="icon" href="about:blank" />
+    <script src="src/index.js" defer="defer"></script>
   </head>
   <body>
     <header>
-      <nav class="navbar navbar-expand-lg bg-body-tertiary">
+      <nav class="navbar navbar-expand-sm bg-body-tertiary">
         <div class="container-fluid">
-          <a class="navbar-brand" href="#">LB Radio</a>
+          <a class="navbar-brand" href="#"><%= title %></a>
           <button
             class="navbar-toggler"
             type="button"
@@ -30,25 +31,12 @@
                 <a class="nav-link active" aria-current="page" href="#">Home</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modal">Settings</a>
-              </li>
-              <!-- <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"> Dropdown </a>
-                <ul class="dropdown-menu">
-                  <li><a class="dropdown-item" href="#">Action</a></li>
-                  <li><a class="dropdown-item" href="#">Another action</a></li>
-                  <li><hr class="dropdown-divider" /></li>
-                  <li><a class="dropdown-item" href="#">Something else here</a></li>
-                </ul>
+                <a class="nav-link" href="about.html">About</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link disabled">Disabled</a>
-              </li> -->
+                <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modal">Settings</a>
+              </li>
             </ul>
-            <!-- <form class="d-flex" role="search">
-              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
-              <button class="btn btn-outline-success" type="submit">Search</button>
-            </form> -->
           </div>
         </div>
       </nav>
@@ -132,49 +120,16 @@
         </div>
       </div>
       <h1>Hello world!</h1>
-      <h2>Pinned Stations</h2>
-      <div class="container-lg"><div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4" id="pins">No Pins yet.</div></div>
-      <form action="javascript:searchRadioStations();">
-        <div class="mb-3">
-          <label for="stationName">Search Radio Stations</label>
-          <div class="input-group">
-            <input type="text" id="stationName" class="form-control" />
-            <button type="submit" id="go" class="btn btn-primary">Search</button>
-          </div>
-        </div>
-      </form>
-
-      <table id="results" class="table align-middle">
-        <thead>
-          <tr>
-            <th>Logo</th>
-            <th>Name</th>
-            <th>Country</th>
-            <th>Website</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="5">Search to show results...</td>
-          </tr>
-        </tbody>
-        <caption>
-          Cannot find your favorite station?
-          <a href="https://www.radio-browser.info/add" target="_blank">Add its internet radio stream to the RadioBrowser Database</a>
-          (No account required).<br />After the stream was checked by RadioBrowser, the station will show up here.
-        </caption>
-      </table>
       <h2>Playing now</h2>
       <div class="alert alert-warning d-none" role="alert">
-        The current regular expression is not matching the "Now playing" information of the stream (<em id="rawPlayingNow"></em>).<br>
+        The current regular expression is not matching the "Now playing" information of the stream (<em id="rawPlayingNow"></em>).<br />
         Consider adapting the regular expression in the <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#modal">Settings</a>.
       </div>
       <div id="now_playing" class="card mb-3 d-none" style="max-width: 540px">
         <div class="row g-0">
           <div class="col-sm-1 d-flex">
             <a href="https://listenbrainz.org/listening-now/" class="h-100 w-100" target="_blank">
-              <img src="../node_modules/bootstrap-icons/icons/boombox.svg" id="currentImage" class="h-100 w-100 rounded">
+              <img src="../node_modules/bootstrap-icons/icons/boombox.svg" id="currentImage" class="h-100 w-100 rounded" />
             </a>
           </div>
           <div class="col-sm-8 flex-grow-1">
@@ -199,11 +154,60 @@
                 </svg>
               </a>
             </div>
-          </div> 
+          </div>
         </div>
       </div>
       <div id="nothing-playing">Nothing yet.</div>
       <button id="stop" class="btn btn-outline-secondary">Stop Listening</button>
+
+      <h2>Radio Stations</h2>
+      <div class="container-lg">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button type="button" role="tab" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab_pins">Pinned Stations</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button type="button" role="tab" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab_search"><label for="stationName">Station Search</label></button>
+          </li>
+        </ul>
+        <div class="tab-content rounded-bottom border border-top-0 p-3">
+          <div id="tab_pins" class="tab-pane fade show active" role="tabpanel">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4" id="pins">No Pins yet.</div>
+          </div>
+          <div id="tab_search" class="tab-pane fade" role="tabpanel">
+            <form action="javascript:searchRadioStations();">
+              <div class="mb-3">
+                <div class="input-group">
+                  <input type="text" id="stationName" class="form-control" />
+                  <button type="submit" id="go" class="btn btn-primary">Search</button>
+                </div>
+              </div>
+            </form>
+      
+            <table id="results" class="table align-middle">
+              <thead>
+                <tr>
+                  <th>Logo</th>
+                  <th>Name</th>
+                  <th>Country</th>
+                  <th>Website</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="5">Search to show results...</td>
+                </tr>
+              </tbody>
+              <caption>
+                Cannot find your favorite station?
+                <a href="https://www.radio-browser.info/add" target="_blank">Add its internet radio stream to the RadioBrowser Database</a>
+                (No account required).<br />After the stream was checked by RadioBrowser, the station will show up here.
+              </caption>
+            </table>
+          </div>
+        </div>
+      </div>
     </main>
   </body>
 </html>
