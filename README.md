@@ -3,6 +3,20 @@
 
 ## About the Project
 
+LB Radio is a utility to submit your radio listening activity to ListenBrainz.
+
+Since most dedicated radio receivers (i'm not talking about web radio applications or Websites for listening to Internet radio streams) are dumb devices without internet connection there is no
+good way to submit listens done with them.
+
+This is where this project kicks in: When turning on the radio receiver, you can search for the radio station on here and click "Start listening". All songs this radio station is playing are
+now submitted to ListenBrainz until you click "Stop listening" again.
+
+## Current project state
+
+The project is not yet finished, it's a WIP. It also isn't hosted somewhere to try it out (yet).
+
+When i have time and feel like working on the project i will continue with it, otherwise it may never get finished and hosted somewhere.
+
 ## How to help?
 - report issues and missing features
 - help fixing reported issues via pull requests
