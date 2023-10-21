@@ -6,7 +6,7 @@ const isProduction = process.env.NODE_ENV == 'production';
 const HtmlBundlerPlugin = require('html-bundler-webpack-plugin');
 
 const config = {
-  entry: './client/src/index.js',
+  mode: isProduction ? 'production' : 'development',
   target: 'web',
   output: {
     path: path.resolve(__dirname, 'client/dist'),
@@ -21,8 +21,13 @@ const config = {
         about: { import: 'client/about.html', data: { title: 'LB Radio' } }
       },
       js: {
-        filename: 'main.js'
-      }
+        // output filename of compiled JavaScript
+        filename: 'js/[name].[contenthash:8].js',
+      },
+      css: {
+        // output filename of extracted CSS
+        filename: 'css/[name].[contenthash:8].css',
+      },
     })
   ],
   module: {
@@ -33,7 +38,7 @@ const config = {
       },
       {
         test: /\.css$/i,
-        type: 'asset'
+        use: ['css-loader'],
       },
       {
         test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
@@ -46,11 +51,4 @@ const config = {
   }
 };
 
-module.exports = () => {
-  if (isProduction) {
-    config.mode = 'production';
-  } else {
-    config.mode = 'development';
-  }
-  return config;
-};
+module.exports = config;
