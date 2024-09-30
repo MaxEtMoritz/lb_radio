@@ -66,7 +66,7 @@ Additionally, a modified copy of the npm package `icecast-metadata-stats` (Licen
 
 The modifications include, but may not be limited to:
 
-- make the package work on NodeJS rather than on browser
+- add checks for content type before reading downloaded data as text to safeguard against blocking endlessly because the data is an endless audio stream
 - add support for another stream service: StreaMonkey
 
-To view all modifications that were made, compare [this file](server/IcecastMetadataStats.js) with [the original file](https://github.com/eshaz/icecast-metadata-js/raw/32ccc00a0fc73f25d6acf545eeb2cbf34fdee8e2/src/icecast-metadata-stats/src/IcecastMetadataStats.js), either by downloading both and comparing locally, or by using an online service like [DiffNow](https://www.diffnow.com/compare-urls).
+To view all modifications that were made, compare [this file](server/IcecastMetadataStats.js) with [the original file](https://github.com/eshaz/icecast-metadata-js/blob/71f6a1fcedb8a44b02035daf56b8020b11e79154/src/icecast-metadata-stats/src/IcecastMetadataStats.js), either by downloading both and comparing locally, or by using an online service like [DiffNow](https://www.diffnow.com/compare-urls).
