@@ -1,7 +1,7 @@
 /**
  * @license
  * @see https://github.com/eshaz/icecast-metadata-js
- * @copyright 2021 Ethan Halsall
+ * @copyright 2021-2023 Ethan Halsall
  *  This file is part of icecast-metadata-stats.
  *
  *  icecast-metadata-stats free software: you can redistribute it and/or modify
@@ -17,11 +17,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
-let IcecastReadableStream;
-import('icecast-metadata-js/browser.js').then(mod => {
-  IcecastReadableStream = mod.IcecastReadableStream;
-});
-const convert = require('xml2json');
+import { IcecastReadableStream } from 'icecast-metadata-js';
 
 const noOp = () => {};
 
@@ -80,34 +76,40 @@ const intervalId = Symbol();
 const fetchStats = Symbol();
 const getStreamMetadata = Symbol();
 
-module.exports = {
-  IcecastMetadataStats: class IcecastMetadataStats {
-    /**
-     * @constructor
-     * @param {URL} endpoint Stream endpoint
-     * @param {object} [options] Options object
-     *
-     * @callback [options.onStats] Called when the automatic query completes
-     * @callback [options.onStatsFetch] Called when the automatic query begins
-     * @param {Array} [options.sources] List of sources to automatically query ["icy", "ogg", "icestats", "stats", "sevenhtml", "nextsongs"]
-     * @param {number} [options.interval] Time in seconds to wait between automatically queries
-     * @param {URL} [options.icestatsEndpoint] Endpoint for the `status-json.xsl` source
-     * @param {URL} [options.statsEndpoint] Endpoint for the `stats` source
-     * @param {URL} [options.nextsongsEndpoint] Endpoint for the `nextsongs` source
-     * @param {URL} [options.sevenhtmlEndpoint] Endpoint for the `7.html` source
-     * @param {number} [options.icyMetaInt] Manually sets the ICY metadata interval
-     * @param {string} [options.icyCharacterEncoding] Character encoding to use for ICY metadata (defaults to "utf-8")
-     * @param {number} [options.icyDetectionTimeout] Time in milliseconds to search for ICY metadata
-     * @param {string} [options.streamonkeySessionId] StreaMonkey Streaming Session ID
-     */
-    constructor(endpoint, options = {}) {
-      const serverPath = endpoint.split('/').slice(0, -1).join('/');
-      let ep = endpoint.split('/').slice(0, 4).join('/');
-      let q = ep.indexOf('?');
-      if (q > 0) ep = ep.substring(0, q);
+const parseIntNanToNull = string => {
+  let result = parseInt(string);
+  if (isNaN(result)) result = null;
 
-      // prettier-ignore
-      p.set(this, {
+  return result;
+};
+
+export class IcecastMetadataStats {
+  /**
+   * @constructor
+   * @param {URL} endpoint Stream endpoint
+   * @param {object} [options] Options object
+   *
+   * @callback [options.onStats] Called when the automatic query completes
+   * @callback [options.onStatsFetch] Called when the automatic query begins
+   * @param {Array} [options.sources] List of sources to automatically query ["icy", "ogg", "icestats", "stats", "sevenhtml", "nextsongs"]
+   * @param {number} [options.interval] Time in seconds to wait between automatically queries
+   * @param {URL} [options.icestatsEndpoint] Endpoint for the `status-json.xsl` source
+   * @param {URL} [options.statsEndpoint] Endpoint for the `stats` source
+   * @param {URL} [options.nextsongsEndpoint] Endpoint for the `nextsongs` source
+   * @param {URL} [options.sevenhtmlEndpoint] Endpoint for the `7.html` source
+   * @param {number} [options.icyMetaInt] Manually sets the ICY metadata interval
+   * @param {string} [options.icyCharacterEncoding] Character encoding to use for ICY metadata (defaults to "utf-8")
+   * @param {number} [options.icyDetectionTimeout] Time in milliseconds to search for ICY metadata
+   * @param {string} [options.streamonkeySessionId] StreaMonkey Streaming Session ID
+   */
+  constructor(endpoint, options = {}) {
+    const serverPath = endpoint.split('/').slice(0, -1).join('/');
+    let ep = endpoint.split('/').slice(0, 4).join('/');
+    let q = ep.indexOf('?');
+    if (q > 0) ep = ep.substring(0, q);
+
+    // prettier-ignore
+    p.set(this, {
       [streamEndpoint]: endpoint,
       [icestatsEndpoint]: options.icestatsEndpoint || `${serverPath}/status-json.xsl`,
       [statsEndpoint] : options.statsEndpoint || `${serverPath}/stats`,
@@ -134,148 +136,170 @@ module.exports = {
       [sevenhtmlController]: new AbortController(),
       [state]: STOPPED,
     });
-    }
+  }
 
-    static xml2Json(xml) {
-      let res = convert.toJson(xml, { coerce: true });
-      console.log(xml, res);
-      return JSON.parse(res);
-    }
+  static xml2Json(xml) {
+    const deserialize = xml => new DOMParser().parseFromString(xml, 'application/xml');
 
-    /**
-     * @returns The current state ["stopped", "running", "fetching"]
-     */
-    get state() {
-      return p.get(this)[state];
-    }
+    const serialize = element => {
+      if (!element.children.length) {
+        return Number.isNaN(Number(element.innerHTML)) ? element.innerHTML : Number(element.innerHTML);
+      }
 
-    /**
-     * @returns The generated `status-json.xsl` endpoint
-     */
-    get icestatsEndpoint() {
-      return p.get(this)[icestatsEndpoint];
-    }
+      const json = {};
 
-    /**
-     * @returns The generated `stats` endpoint
-     */
-    get statsEndpoint() {
-      return p.get(this)[statsEndpoint];
-    }
+      for (const child of element.children) {
+        if (child.nodeName in json) {
+          if (Array.isArray(json[child.nodeName])) {
+            json[child.nodeName].push(serialize(child));
+          } else {
+            json[child.nodeName] = [json[child.nodeName], serialize(child)];
+          }
+        } else {
+          json[child.nodeName] = serialize(child);
+        }
+      }
 
-    /**
-     * @returns The generated `streamonkey` endpoint
-     */
-    get streamonkeyEndpoint() {
-      return p.get(this)[streamonkeyEndpoint];
-    }
+      return json;
+    };
 
-    /**
-     * @returns The generated `history` endpoint
-     */
-    get historyEndpoint() {
-      return p.get(this)[historyEndpoint];
-    }
+    return serialize(deserialize(xml));
+  }
 
-    /**
-     * @returns The generated `history` etag
-     */
-    get historyEtag() {
-      return p.get(this)[historyEtag];
-    }
+  /**
+   * @returns The current state ["stopped", "running", "fetching"]
+   */
+  get state() {
+    return p.get(this)[state];
+  }
 
-    /**
-     * @returns The generated `nextsongs` endpoint
-     */
-    get nextsongsEndpoint() {
-      return p.get(this)[nextsongsEndpoint];
-    }
+  /**
+   * @returns The generated `status-json.xsl` endpoint
+   */
+  get icestatsEndpoint() {
+    return p.get(this)[icestatsEndpoint];
+  }
 
-    /**
-     * @returns The generated `7.html` endpoint
-     */
-    get sevenhtmlEndpoint() {
-      return p.get(this)[sevenhtmlEndpoint];
-    }
+  /**
+   * @returns The generated `stats` endpoint
+   */
+  get statsEndpoint() {
+    return p.get(this)[statsEndpoint];
+  }
 
-    /**
-     * @description Starts automatically fetching stats
-     */
-    start() {
-      if (p.get(this)[state] === STOPPED) {
-        p.get(this)[state] = RUNNING;
+  /**
+   * @returns The generated `streamonkey` endpoint
+   */
+  get streamonkeyEndpoint() {
+    return p.get(this)[streamonkeyEndpoint];
+  }
 
+  /**
+   * @returns The generated `history` endpoint
+   */
+  get historyEndpoint() {
+    return p.get(this)[historyEndpoint];
+  }
+
+  /**
+   * @returns The generated `history` etag
+   */
+  get historyEtag() {
+    return p.get(this)[historyEtag];
+  }
+
+  /**
+   * @returns The generated `nextsongs` endpoint
+   */
+  get nextsongsEndpoint() {
+    return p.get(this)[nextsongsEndpoint];
+  }
+
+  /**
+   * @returns The generated `7.html` endpoint
+   */
+  get sevenhtmlEndpoint() {
+    return p.get(this)[sevenhtmlEndpoint];
+  }
+
+  /**
+   * @description Starts automatically fetching stats
+   */
+  start() {
+    if (p.get(this)[state] === STOPPED) {
+      p.get(this)[state] = RUNNING;
+
+      this.fetch().then(p.get(this)[onStats]);
+
+      p.get(this)[intervalId] = setInterval(() => {
         this.fetch().then(p.get(this)[onStats]);
-
-        p.get(this)[intervalId] = setInterval(() => {
-          this.fetch().then(p.get(this)[onStats]);
-        }, p.get(this)[interval]);
-      }
+      }, p.get(this)[interval]);
     }
+  }
 
-    /**
-     * @description Stops automatically fetching stats and cancels any inprogress stats
-     */
-    stop() {
-      if (p.get(this)[state] !== STOPPED) {
-        p.get(this)[state] = STOPPED;
+  /**
+   * @description Stops automatically fetching stats and cancels any inprogress stats
+   */
+  stop() {
+    if (p.get(this)[state] !== STOPPED) {
+      p.get(this)[state] = STOPPED;
 
-        clearInterval(p.get(this)[intervalId]);
-        p.get(this)[icyController].abort();
-        p.get(this)[oggController].abort();
-        p.get(this)[icestatsController].abort();
-        p.get(this)[statsController].abort();
-        p.get(this)[sevenhtmlController].abort();
-        p.get(this)[streamonkeyController].abort();
-        p.get(this)[historyController].abort();
-      }
+      clearInterval(p.get(this)[intervalId]);
+      p.get(this)[icyController].abort();
+      p.get(this)[oggController].abort();
+      p.get(this)[icestatsController].abort();
+      p.get(this)[statsController].abort();
+      p.get(this)[sevenhtmlController].abort();
+      p.get(this)[streamonkeyController].abort();
+      p.get(this)[historyController].abort();
     }
+  }
 
-    /**
-     * @description Manually fetches stats from the sources passed in to the `options.sources` parameter
-     * @async
-     * @returns {object} Object containing the stats from the sources
-     */
-    async fetch() {
-      if (p.get(this)[state] !== FETCHING) {
-        const oldState = p.get(this)[state];
+  /**
+   * @description Manually fetches stats from the sources passed in to the `options.sources` parameter
+   * @async
+   * @returns {object} Object containing the stats from the sources
+   */
+  async fetch() {
+    if (p.get(this)[state] !== FETCHING) {
+      const oldState = p.get(this)[state];
 
-        p.get(this)[state] = FETCHING;
-        p.get(this)[onStatsFetch](p.get(this)[sources]);
+      p.get(this)[state] = FETCHING;
+      p.get(this)[onStatsFetch](p.get(this)[sources]);
 
-        const promises = [];
-        if (p.get(this)[sources].includes('icestats')) promises.push(this.getIcestats());
-        if (p.get(this)[sources].includes('sevenhtml')) promises.push(this.getSevenhtml());
-        if (p.get(this)[sources].includes('stats')) promises.push(this.getStats());
-        if (p.get(this)[sources].includes('nextsongs')) promises.push(this.getNextsongs());
-        if (p.get(this)[sources].includes('icy')) promises.push(this.getIcyMetadata());
-        if (p.get(this)[sources].includes('ogg')) promises.push(this.getOggMetadata());
-        if (p.get(this)[sources].includes('streamonkey')) promises.push(this.getStreamonkey());
-        if (p.get(this)[sources].includes('history')) promises.push(this.getHistory());
+      const promises = [];
+      if (p.get(this)[sources].includes('icestats')) promises.push(this.getIcestats());
+      if (p.get(this)[sources].includes('sevenhtml')) promises.push(this.getSevenhtml());
+      if (p.get(this)[sources].includes('stats')) promises.push(this.getStats());
+      if (p.get(this)[sources].includes('nextsongs')) promises.push(this.getNextsongs());
+      if (p.get(this)[sources].includes('icy')) promises.push(this.getIcyMetadata());
+      if (p.get(this)[sources].includes('ogg')) promises.push(this.getOggMetadata());
+      if (p.get(this)[sources].includes('streamonkey')) promises.push(this.getStreamonkey());
+      if (p.get(this)[sources].includes('history')) promises.push(this.getHistory());
 
-        const stats = await Promise.all(promises).then(stats => stats.reduce((acc, stat) => ({ ...acc, ...stat }), {}));
+      const stats = await Promise.all(promises).then(stats => stats.reduce((acc, stat) => ({ ...acc, ...stat }), {}));
 
-        p.get(this)[state] = p.get(this)[state] !== FETCHING ? p.get(this)[state] : oldState;
+      p.get(this)[state] = p.get(this)[state] !== FETCHING ? p.get(this)[state] : oldState;
 
-        return stats;
-      }
+      return stats;
     }
+  }
 
-    /**
-     * @description Fetches the data from the `/status-json.xsl` endpoint
-     * @async
-     * @returns {object} Object containing results of `/status-json.xsl`
-     */
-    async getIcestats() {
-      return this[fetchStats]({
-        status: icestatsFetchStatus,
-        endpoint: icestatsEndpoint,
-        controller: icestatsController,
-        mapper: res => (/^(?:text|application)\/json/.test(res.headers.get('content-type')) ? res.json() : undefined)
-      }).then(stats => ({ icestats: stats && stats.icestats }));
-    }
+  /**
+   * @description Fetches the data from the `/status-json.xsl` endpoint
+   * @async
+   * @returns {object} Object containing results of `/status-json.xsl`
+   */
+  async getIcestats() {
+    return this[fetchStats]({
+      status: icestatsFetchStatus,
+      endpoint: icestatsEndpoint,
+      controller: icestatsController,
+      mapper: res => (/^(?:text|application)\/json/.test(res.headers.get('content-type')) ? res.json() : undefined)
+    }).then(stats => ({ icestats: stats && stats.icestats }));
+  }
 
-    /*
+  /*
   <HTML><meta http-equiv="Pragma" content="no-cache"></head><body>350,1,132,1000,41,128,Dj Mixes Sety</body></html>
   ,141,1000,50,128,Gra AutoPilot audycje Energy 2000</body></html>
   ,27,1000,8,128,Gra Wavelogic audycje Rave With The Wave</body></html>
@@ -283,218 +307,216 @@ module.exports = {
   ,15,1000,5,64,youtube.com/RadioPartyOfficial</body></html>
   */
 
-    // http://wiki.winamp.com/wiki/SHOUTcast_DNAS_Server_2_XML_Reponses#Equivalent_of_7.html
-    // CURRENTLISTENERS STREAMSTATUS PEAKLISTENERS MAXLISTENERS UNIQUELISTENERS BITRATE SONGTITLE
+  // http://wiki.winamp.com/wiki/SHOUTcast_DNAS_Server_2_XML_Reponses#Equivalent_of_7.html
+  // CURRENTLISTENERS STREAMSTATUS PEAKLISTENERS MAXLISTENERS UNIQUELISTENERS BITRATE SONGTITLE
 
-    /**
-     * @description Fetches the data from the `/7.html` endpoint
-     * @async
-     * @returns {object} Object containing results of `/7.html`
-     */
-    async getSevenhtml() {
-      // TODO: request correct sid (works only if input url ist /stream/<sid>)
-      return this[fetchStats]({
-        status: sevenhtmlFetchStatus,
-        endpoint: sevenhtmlEndpoint,
-        controller: sevenhtmlController,
-        mapper: async res =>
-          /^text\/html/.test(res.headers.get('content-type'))
-            ? (await res.text()).match(/(.*?)<\/body>/gi).map(s => {
-                const stats = s.match(/(<body>|,)(?<stats>.*)<\/body>/i).groups.stats.split(',');
+  /**
+   * @description Fetches the data from the `/7.html` endpoint
+   * @async
+   * @returns {object} Object containing results of `/7.html`
+   */
+  async getSevenhtml() {
+    // TODO: request correct sid (works only if input url ist /stream/<sid>)
+    return this[fetchStats]({
+      status: sevenhtmlFetchStatus,
+      endpoint: sevenhtmlEndpoint,
+      controller: sevenhtmlController,
+      mapper: async res =>
+        /^text\/html/.test(res.headers.get('content-type'))
+          ? (await res.text()).match(/(.*?)<\/body>/gi).map(s => {
+              const stats = s.match(/(<body>|,)(?<stats>.*)<\/body>/i).groups.stats.split(',');
 
-                return stats.length === 7
-                  ? {
-                      StreamTitle: stats[6],
-                      currentListeners: parseInt(stats[4]),
-                      peakListeners: parseInt(stats[2]),
-                      maxListeners: parseInt(stats[3]),
-                      bitrate: parseInt(stats[5]),
-                      status: parseInt(stats[1]),
-                      serverListeners: parseInt(stats[0])
-                    }
-                  : {
-                      StreamTitle: stats[4],
-                      currentListeners: parseInt(stats[2]),
-                      peakListeners: parseInt(stats[0]),
-                      maxListeners: parseInt(stats[1]),
-                      bitrate: parseInt(stats[3])
-                    };
-              })
-            : undefined
-      }).then(sevenhtml => ({
-        sevenhtml
-      }));
-    }
+              return stats.length === 7
+                ? {
+                    StreamTitle: stats[6],
+                    currentListeners: parseIntNanToNull(stats[4]),
+                    peakListeners: parseIntNanToNull(stats[2]),
+                    maxListeners: parseIntNanToNull(stats[3]),
+                    bitrate: parseIntNanToNull(stats[5]),
+                    status: parseIntNanToNull(stats[1]),
+                    serverListeners: parseIntNanToNull(stats[0])
+                  }
+                : {
+                    StreamTitle: stats[4],
+                    currentListeners: parseIntNanToNull(stats[2]),
+                    peakListeners: parseIntNanToNull(stats[0]),
+                    maxListeners: parseIntNanToNull(stats[1]),
+                    bitrate: parseIntNanToNull(stats[3])
+                  };
+            })
+          : undefined
+    }).then(sevenhtml => ({
+      sevenhtml
+    }));
+  }
 
-    // http://wiki.winamp.com/wiki/SHOUTcast_DNAS_Server_2_XML_Reponses#General_Server_Summary
-    /**
-     * @description Fetches the data from the `/stats` endpoint
-     * @async
-     * @returns {object} Object containing results of `/stats`
-     */
-    async getStats() {
-      // TODO: request correct sid (validate if input url matches /stream/<sid> or, after request, if STREAMPATH matches)
-      return this[fetchStats]({
-        status: statsFetchStatus,
-        endpoint: statsEndpoint,
-        controller: statsController,
-        mapper: async res => (/^(?:text|application)\/xml/.test(res.headers.get('content-type')) ? IcecastMetadataStats.xml2Json(await res.text()).SHOUTCASTSERVER : undefined)
-      }).then(stats => {
-        console.log(stats);
-        return {
-          stats
-        };
-      });
-    }
+  // http://wiki.winamp.com/wiki/SHOUTcast_DNAS_Server_2_XML_Reponses#General_Server_Summary
+  /**
+   * @description Fetches the data from the `/stats` endpoint
+   * @async
+   * @returns {object} Object containing results of `/stats`
+   */
+  async getStats() {
+    // TODO: request correct sid (validate if input url matches /stream/<sid> or, after request, if STREAMPATH matches)
+    return this[fetchStats]({
+      status: statsFetchStatus,
+      endpoint: statsEndpoint,
+      controller: statsController,
+      mapper: async res => (/^(?:text|application)\/xml/.test(res.headers.get('content-type')) ? IcecastMetadataStats.xml2Json(await res.text()).SHOUTCASTSERVER : undefined)
+    }).then(stats => {
+      console.log(stats);
+      return {
+        stats
+      };
+    });
+  }
 
-    // http://wiki.winamp.com/wiki/SHOUTcast_DNAS_Server_2_XML_Reponses#Nextsongs
-    /**
-     * @description Fetches the data from the `/nextsongs` endpoint
-     * @async
-     * @returns {object} Object containing results of `/nextsongs`
-     */
-    async getNextsongs() {
-      return this[fetchStats]({
-        status: nextsongsFetchStatus,
-        endpoint: nextsongsEndpoint,
-        controller: nextsongsController,
-        mapper: async res => (/^(?:text|application)\/xml/.test(res.headers.get('content-type')) ? IcecastMetadataStats.xml2Json(await res.text()).SHOUTCASTSERVER.NEXTSONGS : undefined)
-      }).then(nextsongs => ({
-        nextsongs
-      }));
-    }
+  // http://wiki.winamp.com/wiki/SHOUTcast_DNAS_Server_2_XML_Reponses#Nextsongs
+  /**
+   * @description Fetches the data from the `/nextsongs` endpoint
+   * @async
+   * @returns {object} Object containing results of `/nextsongs`
+   */
+  async getNextsongs() {
+    return this[fetchStats]({
+      status: nextsongsFetchStatus,
+      endpoint: nextsongsEndpoint,
+      controller: nextsongsController,
+      mapper: async res => (/^(?:text|application)\/xml/.test(res.headers.get('content-type')) ? IcecastMetadataStats.xml2Json(await res.text()).SHOUTCASTSERVER.NEXTSONGS : undefined)
+    }).then(nextsongs => ({
+      nextsongs
+    }));
+  }
 
-    async getStreamonkey() {
-      if (!p.get(this)[streamonkeySessionId]) {
-        console.log('no sesid');
-        p.get(this)[streamonkeySessionId] = await this[fetchStats]({
-          status: streamonkeyFetchStatus,
-          endpoint: streamEndpoint,
-          controller: streamonkeyController,
-          mapper: async res => {
-            return res.headers.get('sessionid');
-          }
-        });
-      }
-
-      console.log(p.get(this)[streamonkeySessionId]);
-      return this[fetchStats]({
+  async getStreamonkey() {
+    if (!p.get(this)[streamonkeySessionId]) {
+      console.log('no sesid');
+      p.get(this)[streamonkeySessionId] = await this[fetchStats]({
         status: streamonkeyFetchStatus,
-        endpoint: streamonkeyEndpoint,
+        endpoint: streamEndpoint,
         controller: streamonkeyController,
-        headers: {
-          Cookie: `streamingsession=${p.get(this)[streamonkeySessionId]}`,
-          'Accept-Encoding': 'gzip'
-        },
-        mapper: r => (/^(?:text|application)\/json/.test(r.headers.get('content-type')) ? r.json() : undefined)
-      }).then(async r => {
-        console.log('got r');
-        return { streamonkey: r };
+        mapper: async res => {
+          return res.headers.get('sessionid');
+        }
       });
     }
 
-    async getHistory() {
-      let headers = {
+    console.log(p.get(this)[streamonkeySessionId]);
+    return this[fetchStats]({
+      status: streamonkeyFetchStatus,
+      endpoint: streamonkeyEndpoint,
+      controller: streamonkeyController,
+      headers: {
+        Cookie: `streamingsession=${p.get(this)[streamonkeySessionId]}`,
         'Accept-Encoding': 'gzip'
-      }
-      if(p.get(this)[historyEtag])headers['If-None-Match'] = p.get(this)[historyEtag]
-      return this[fetchStats]({
-        status: historyFetchStatus,
-        endpoint: historyEndpoint,
-        controller: historyController,
-        mapper: r => {
-          if(r.status !== 304)
-          p.get(this)[historyEtag] = r.headers.get('etag')??null
-          return (/^(?:text|application)\/json/.test(r.headers.get('content-type')) ? r.json() : undefined)
-        },
-        headers
-      }).then(r => ({ history: r }));
-    }
+      },
+      mapper: r => (/^(?:text|application)\/json/.test(r.headers.get('content-type')) ? r.json() : undefined)
+    }).then(async r => {
+      console.log('got r');
+      return { streamonkey: r };
+    });
+  }
 
-    /**
-     * @description Fetches the first ICY metadata update from the stream
-     * @async
-     * @returns {object} Object containing ICY metadata
-     */
-    async getIcyMetadata() {
-      return this[getStreamMetadata]({
-        status: icyFetchStatus,
-        endpoint: streamEndpoint,
-        controller: icyController,
-        metadataType: 'icy',
-        headers: { 'Icy-MetaData': 1, 'User-Agent': 'Some agent there' }
-      });
-    }
+  async getHistory() {
+    let headers = {
+      'Accept-Encoding': 'gzip'
+    };
+    if (p.get(this)[historyEtag]) headers['If-None-Match'] = p.get(this)[historyEtag];
+    return this[fetchStats]({
+      status: historyFetchStatus,
+      endpoint: historyEndpoint,
+      controller: historyController,
+      mapper: r => {
+        if (r.status !== 304) p.get(this)[historyEtag] = r.headers.get('etag') ?? null;
+        return /^(?:text|application)\/json/.test(r.headers.get('content-type')) ? r.json() : undefined;
+      },
+      headers
+    }).then(r => ({ history: r }));
+  }
 
-    /**
-     * @description Fetches the first Ogg metadata update from the stream
-     * @async
-     * @returns {object} Object containing Ogg metadata
-     */
-    async getOggMetadata() {
-      return this[getStreamMetadata]({
-        status: oggFetchStatus,
-        endpoint: streamEndpoint,
-        controller: oggController,
-        metadataType: 'ogg'
-      });
-    }
+  /**
+   * @description Fetches the first ICY metadata update from the stream
+   * @async
+   * @returns {object} Object containing ICY metadata
+   */
+  async getIcyMetadata() {
+    return this[getStreamMetadata]({
+      status: icyFetchStatus,
+      endpoint: streamEndpoint,
+      controller: icyController,
+      metadataType: 'icy',
+      headers: { 'Icy-MetaData': 1, 'User-Agent': 'Some agent there' }
+    });
+  }
 
-    async [getStreamMetadata]({ status, endpoint, controller, headers, metadataType }) {
-      return this[fetchStats]({
-        status,
-        endpoint,
-        controller,
-        headers,
-        mapper: async res =>
-          new Promise(resolve => {
-            new IcecastReadableStream(res, {
-              onMetadata: ({ metadata }) => {
-                p.get(this)[controller].abort();
-                resolve(metadata);
-              },
-              onMetadataFailed: () => {
-                p.get(this)[controller].abort();
-                resolve();
-              },
-              metadataTypes: metadataType,
-              icyMetaInt: p.get(this)[icyMetaInt],
-              icyCharacterEncoding: p.get(this)[icyCharacterEncoding],
-              icyDetectionTimeout: p.get(this)[icyDetectionTimeout]
-            }).startReading();
-          })
-      }).then(metadata => ({ [metadataType]: metadata }));
-    }
+  /**
+   * @description Fetches the first Ogg metadata update from the stream
+   * @async
+   * @returns {object} Object containing Ogg metadata
+   */
+  async getOggMetadata() {
+    return this[getStreamMetadata]({
+      status: oggFetchStatus,
+      endpoint: streamEndpoint,
+      controller: oggController,
+      metadataType: 'ogg'
+    });
+  }
 
-    async [fetchStats]({ status, endpoint, controller, mapper, headers = {} }) {
-      if (!p.get(this)[status]) {
-        p.get(this)[status] = true;
-        return fetch(p.get(this)[endpoint], {
-          method: 'GET',
-          headers,
-          signal: p.get(this)[controller].signal,
-          timeout: 2000
+  async [getStreamMetadata]({ status, endpoint, controller, headers, metadataType }) {
+    return this[fetchStats]({
+      status,
+      endpoint,
+      controller,
+      headers,
+      mapper: async res =>
+        new Promise(resolve => {
+          new IcecastReadableStream(res, {
+            onMetadata: ({ metadata }) => {
+              p.get(this)[controller].abort();
+              resolve(metadata);
+            },
+            onMetadataFailed: () => {
+              p.get(this)[controller].abort();
+              resolve();
+            },
+            metadataTypes: metadataType,
+            icyMetaInt: p.get(this)[icyMetaInt],
+            icyCharacterEncoding: p.get(this)[icyCharacterEncoding],
+            icyDetectionTimeout: p.get(this)[icyDetectionTimeout]
+          }).startReading();
         })
-          .then(res => {
-            if (!res.ok &&!res.status==304) {
-              res.text().then(t => {
-                console.log(t);
-              });
-              throw new Error(`HTTP Error ${res.status}`);
-            }
-            return res;
-          })
-          .then(mapper)
-          .catch(e => {
-            if (e.name !== 'AbortError') {
-              console.warn(`Failed to fetch ${p.get(this)[endpoint]}`, e);
-            }
-          })
-          .finally(() => {
-            p.get(this)[status] = false;
-            p.get(this)[controller] = new AbortController();
-          });
-      }
+    }).then(metadata => ({ [metadataType]: metadata }));
+  }
+
+  async [fetchStats]({ status, endpoint, controller, mapper, headers = {} }) {
+    if (!p.get(this)[status]) {
+      p.get(this)[status] = true;
+      return fetch(p.get(this)[endpoint], {
+        method: 'GET',
+        headers,
+        signal: p.get(this)[controller].signal,
+        timeout: 2000
+      })
+        .then(res => {
+          if (!res.ok && !res.status == 304) {
+            res.text().then(t => {
+              console.log(t);
+            });
+            throw new Error(`HTTP Error ${res.status}`);
+          }
+          return res;
+        })
+        .then(mapper)
+        .catch(e => {
+          if (e.name !== 'AbortError') {
+            console.warn(`Failed to fetch ${p.get(this)[endpoint]}`, e);
+          }
+        })
+        .finally(() => {
+          p.get(this)[status] = false;
+          p.get(this)[controller] = new AbortController();
+        });
     }
   }
-};
+}

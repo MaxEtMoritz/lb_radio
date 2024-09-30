@@ -1,15 +1,15 @@
 import { RadioBrowserApi, StationSearchType } from 'radio-browser-api';
 import pkg from '../../package.json';
 import bs, { Modal } from 'bootstrap';
-import JSONLocalStorage from './jsonLocalStorage';
-import * as pageElements from './pageElements';
+import JSONLocalStorage from './jsonLocalStorage.js';
+import * as pageElements from './pageElements.js';
 import icons from 'bootstrap-icons/bootstrap-icons.svg';
 const heart = icons + '#heart';
 const heartbreak = icons + '#heartbreak';
 const heart_fill = icons + '#heart-fill';
 const heartbreak_fill = icons + '#heartbreak-fill';
 import boombox from 'bootstrap-icons/icons/boombox.svg';
-import ListenbrainzAPI from './lb_api';
+import ListenbrainzAPI from './lb_api.js';
 
 const rb = new RadioBrowserApi(pkg.name, true);
 let interval;
