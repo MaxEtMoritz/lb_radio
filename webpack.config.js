@@ -2,16 +2,19 @@
 
 import { resolve } from 'path';
 import HtmlBundlerPlugin from 'html-bundler-webpack-plugin';
+import setup from './server/server.js'
 
 const isProduction = process.env.NODE_ENV == 'production';
 const __dirname = import.meta.dirname;
 
+/** @type {import('webpack-dev-server').WebpackConfiguration} */
 const config = {
   mode: isProduction ? 'production' : 'development',
   target: 'web',
   output: {
     path: resolve(__dirname, 'client/dist'),
-    assetModuleFilename: isProduction ? 'assets/[hash][ext][query]' : 'assets/[name][ext][query]'
+    assetModuleFilename: isProduction ? 'assets/[hash][ext][query]' : 'assets/[name][ext][query]',
+    clean: true
   },
   plugins: [
     // Add your plugins here
@@ -49,6 +52,20 @@ const config = {
       // Add your rules for custom modules here
       // Learn more about loaders from https://webpack.js.org/loaders/
     ]
+  },
+  devServer: {
+    setupMiddlewares: (middlewares, devServer) =>{
+      // register server's endpoints on devServer to use devServer in development
+      if(!devServer)
+      throw new Error('devServer is not defined')
+
+      //if(module.hot)module.hot.accept()
+      
+      setup(devServer.app)
+
+      return middlewares
+    },
+    watchFiles: ['client/src/**/*.js', 'server/**/*.js', 'client/**/*.html', 'client/**/*.css'],
   }
 };
 
