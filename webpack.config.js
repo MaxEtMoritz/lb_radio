@@ -1,15 +1,16 @@
 // Generated using webpack-cli https://github.com/webpack/webpack-cli
 
-const path = require('path');
+import { resolve } from 'path';
+import HtmlBundlerPlugin from 'html-bundler-webpack-plugin';
 
 const isProduction = process.env.NODE_ENV == 'production';
-const HtmlBundlerPlugin = require('html-bundler-webpack-plugin');
+const __dirname = import.meta.dirname;
 
 const config = {
   mode: isProduction ? 'production' : 'development',
   target: 'web',
   output: {
-    path: path.resolve(__dirname, 'client/dist'),
+    path: resolve(__dirname, 'client/dist'),
     assetModuleFilename: isProduction ? 'assets/[hash][ext][query]' : 'assets/[name][ext][query]'
   },
   plugins: [
@@ -51,4 +52,10 @@ const config = {
   }
 };
 
-module.exports = config;
+if (isProduction) {
+  config.mode = 'production';
+} else {
+  config.mode = 'development';
+}
+
+export default config;
