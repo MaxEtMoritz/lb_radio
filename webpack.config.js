@@ -2,7 +2,7 @@
 
 import { resolve } from 'path';
 import HtmlBundlerPlugin from 'html-bundler-webpack-plugin';
-import setup from './server/server.js'
+import setup from './server/server.js';
 
 const isProduction = process.env.NODE_ENV == 'production';
 const __dirname = import.meta.dirname;
@@ -21,17 +21,17 @@ const config = {
     // Learn more about plugins from https://webpack.js.org/configuration/plugins/
     new HtmlBundlerPlugin({
       entry: {
-        index: { import: 'client/index.html', data: { title: 'LB Radio' } },
-        about: { import: 'client/about.html', data: { title: 'LB Radio' } }
+        index: { import: 'client/index.ejs', data: { title: 'LB Radio' } },
+        about: { import: 'client/about.ejs', data: { title: 'LB Radio' } }
       },
       js: {
         // output filename of compiled JavaScript
-        filename: 'js/[name].[contenthash:8].js',
+        filename: 'js/[name].[contenthash:8].js'
       },
       css: {
         // output filename of extracted CSS
-        filename: 'css/[name].[contenthash:8].css',
-      },
+        filename: 'css/[name].[contenthash:8].css'
+      }
     })
   ],
   module: {
@@ -42,7 +42,7 @@ const config = {
       },
       {
         test: /\.css$/i,
-        use: ['css-loader'],
+        use: ['css-loader']
       },
       {
         test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
@@ -54,18 +54,18 @@ const config = {
     ]
   },
   devServer: {
-    setupMiddlewares: (middlewares, devServer) =>{
+    setupMiddlewares: (middlewares, devServer) => {
       // register server's endpoints on devServer to use devServer in development
-      if(!devServer)
-      throw new Error('devServer is not defined')
+      if (!devServer) throw new Error('devServer is not defined');
 
-      //if(module.hot)module.hot.accept()
-      
-      setup(devServer.app)
+      if (import.meta.webpackHot) import.meta.webpackHot.accept();
+      console.debug(import.meta)
 
-      return middlewares
+      setup(devServer.app);
+
+      return middlewares;
     },
-    watchFiles: ['client/src/**/*.js', 'server/**/*.js', 'client/**/*.html', 'client/**/*.css'],
+    //watchFiles: ['client/src/**/*.js', 'server/**/*.js', 'client/**/*.html', 'client/**/*.css']
   }
 };
 

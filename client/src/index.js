@@ -11,6 +11,12 @@ const heartbreak_fill = icons + '#heartbreak-fill';
 import boombox from 'bootstrap-icons/icons/boombox.svg';
 import ListenbrainzAPI from './lb_api.js';
 
+if (import.meta.webpackHot)
+  import.meta.webpackHot.accept();
+else {
+  console.debug('no webpackHot');
+}
+
 const rb = new RadioBrowserApi(pkg.name, true);
 let interval;
 let timeout;
@@ -247,7 +253,7 @@ async function startListening(station) {
         if (stream_meta?.nowPlaying !== json.nowPlaying) {
           pageElements.now_playing.classList.remove('d-none');
           pageElements.nothing_playing.classList.add('d-none');
-          json.listenedAt = json.listenedAt??Math.round(new Date().valueOf() / 1000)
+          json.listenedAt = json.listenedAt ?? Math.round(new Date().valueOf() / 1000);
           let lbResponse = await ListenbrainzAPI.submitListens(
             'playing_now',
             [
@@ -301,7 +307,7 @@ async function startListening(station) {
               console.log('normal submission', payload);
               ListenbrainzAPI.submitListens('single', [payload], JSONLocalStorage.lb_account.token);
             },
-            Math.min(4 * 60 * 1000, metadata?.metadata?.recording?.length?metadata.metadata.recording.length/2 : Number.POSITIVE_INFINITY),
+            Math.min(4 * 60 * 1000, metadata?.metadata?.recording?.length ? metadata.metadata.recording.length / 2 : Number.POSITIVE_INFINITY),
             {
               listened_at: json.listenedAt,
               track_metadata: {

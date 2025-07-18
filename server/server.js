@@ -1,12 +1,18 @@
 import express from 'express';
 import IcecastMetadataStats from './IcecastMetadataStats.js';
 
+if (import.meta.webpackHot){
+  console.debug(import.meta.webpackHot)
+  import.meta.webpackHot.accept();
+} else{
+  console.debug('no webpackHot')
+}
+
 /**
  * Set up the server by registering endpoints etc.
  * @param {express.Express} app - instance of the Express server.
  */
 export default function setup(app) {
-
   const SUPPORTED_SERVERS = Object.freeze({
     ICECAST: Symbol('ICECAST'),
     SHOUTCAST: Symbol('SHOUTCAST'),
@@ -15,6 +21,8 @@ export default function setup(app) {
     STREAM_OGG: Symbol('STREAM_OGG'),
     STREAMONKEY: Symbol('STREAMONKEY')
   });
+
+  console.debug('changed server code')
 
   const IMPL2SOURCE = Object.freeze({
     ICECAST: 'icestats',
@@ -26,7 +34,6 @@ export default function setup(app) {
   });
 
   app.get('/nowplaying', async (req, res) => {
-
     res.setTimeout(10000, () => res.status(500).send());
     if (!req.query.url) {
       res.status(400).send('missing param "url"');
