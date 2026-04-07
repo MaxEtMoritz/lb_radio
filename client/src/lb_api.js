@@ -88,13 +88,19 @@ export default class ListenbrainzAPI {
    * @param {string} artist - name of the recording artist(s)
    * @param {string} title - name of the recording
    * @param {Array<'artist'|'tag'|'release'>} additionalMeta - additional metadata to request
+   * @param {string} token - ListenBrainz Auth Token
    * @returns Response of the ListenBrainz API
    */
-  static async lookupMetadata(artist, title, ...additionalMeta) {
+  static async lookupMetadata(artist, title, token, ...additionalMeta) {
     let response = await fetch(
       `https://api.listenbrainz.org/1/metadata/lookup/?artist_name=${encodeURIComponent(artist)}&recording_name=${encodeURIComponent(title)}&metadata=${
         additionalMeta.length > 0
-      }&inc=${additionalMeta.join('%20')}`
+      }&inc=${additionalMeta.join('%20')}`,
+      {
+        headers: {
+          Authorization: `Token ${token}`
+        }
+      }
     );
     if (!response.ok) {
       throw new ListenbrainzError(await response.json());

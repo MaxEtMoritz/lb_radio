@@ -273,7 +273,7 @@ async function startListening(station) {
             JSONLocalStorage.lb_account.token
           );
           console.log(lbResponse);
-          metadata = await ListenbrainzAPI.lookupMetadata(json.artist, json.title, 'release');
+          metadata = await ListenbrainzAPI.lookupMetadata(json.artist, json.title, JSONLocalStorage.lb_account.token, 'release');
 
           // if timeout not yet triggered, submit old listen now before waiting for the next one.
           if (timeout) {
