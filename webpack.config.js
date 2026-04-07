@@ -21,8 +21,8 @@ const config = {
     // Learn more about plugins from https://webpack.js.org/configuration/plugins/
     new HtmlBundlerPlugin({
       entry: {
-        index: { import: 'client/index.ejs', data: { title: 'LB Radio' } },
-        about: { import: 'client/about.ejs', data: { title: 'LB Radio' } }
+        index: { import: './client/index.ejs', data: { title: 'LB Radio' } },
+        about: { import: './client/about.ejs', data: { title: 'LB Radio' } }
       },
       js: {
         // output filename of compiled JavaScript
@@ -31,6 +31,9 @@ const config = {
       css: {
         // output filename of extracted CSS
         filename: 'css/[name].[contenthash:8].css'
+      },
+      "loaderOptions":{
+        "preprocessor": "ejs"
       }
     })
   ],
