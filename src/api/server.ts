@@ -1,64 +1,68 @@
 import express from 'express';
 import IcecastMetadataStats from './IcecastMetadataStats.js';
 
-if (import.meta.webpackHot){
-  console.debug(import.meta.webpackHot)
-  import.meta.webpackHot.accept();
-} else{
-  console.debug('no webpackHot')
-}
+export type ApiResponse = {
+  implementation: string;
+  nowPlaying: string;
+  artist?: string;
+  title?: string;
+  listenedAt?: number;
+};
 
 /**
  * Set up the server by registering endpoints etc.
  * @param {express.Express} app - instance of the Express server.
  */
-export default function setup(app) {
+export default function setup(app: express.Express) {
   const SUPPORTED_SERVERS = Object.freeze({
     ICECAST: Symbol('ICECAST'),
     SHOUTCAST: Symbol('SHOUTCAST'),
     SHOUTCAST_LEG: Symbol('SHOUTCAST_LEG'),
     STREAM_ICY: Symbol('STREAM_ICY'),
     STREAM_OGG: Symbol('STREAM_OGG'),
-    STREAMONKEY: Symbol('STREAMONKEY')
+    STREAMONKEY: Symbol('STREAMONKEY'),
   });
 
-  console.debug('changed server code')
+  console.debug('changed server code');
 
-  const IMPL2SOURCE = Object.freeze({
+  const IMPL2SOURCE: { [key: string]: string } = Object.freeze({
     ICECAST: 'icestats',
     SHOUTCAST: 'stats',
     SHOUTCAST_LEG: 'sevenhtml',
     STREAM_ICY: 'icy',
     STREAM_OGG: 'ogg',
-    STREAMONKEY: 'history'
+    STREAMONKEY: 'history',
   });
 
   app.get('/nowplaying', async (req, res) => {
     res.setTimeout(10000, () => res.status(500).send());
-    if (!req.query.url) {
+    if (!req.query['url']) {
       res.status(400).send('missing param "url"');
       return;
     }
-    let implementation = req.query['implementation'] ?? Object.getOwnPropertyNames(SUPPORTED_SERVERS);
+    let implementation =
+      req.query['implementation'] ?? Object.getOwnPropertyNames(SUPPORTED_SERVERS);
     if (!Array.isArray(implementation)) implementation = [implementation];
     console.log(implementation);
     let implResults = [];
-    let url = new URL(req.query.url);
-    const statsFetcher = new IcecastMetadataStats(url.toString(), {
-      sources: implementation.map(imp => IMPL2SOURCE[imp]),
-      historyEtag: implementation.includes(SUPPORTED_SERVERS.STREAMONKEY.description) ? req.headers['if-none-match'] : null
+    let url = new URL(req.query['url'] as string);
+    const statsFetcher = new IcecastMetadataStats(url, {
+      sources: implementation.map((imp) => IMPL2SOURCE[imp as string]),
+      historyEtag: implementation.includes(SUPPORTED_SERVERS.STREAMONKEY.description!)
+        ? req.headers['if-none-match']
+        : undefined,
     });
     let stats = await statsFetcher.fetch();
     if (stats.stats) {
       implResults.push({
         implementation: SUPPORTED_SERVERS.SHOUTCAST.description,
-        nowPlaying: stats.stats.SONGTITLE
+        nowPlaying: stats.stats.SONGTITLE,
       });
     }
     if (stats.sevenhtml) {
       implResults.push({
         implementation: SUPPORTED_SERVERS.SHOUTCAST_LEG.description,
-        nowPlaying: stats.sevenhtml[0].StreamTitle
+        nowPlaying: stats.sevenhtml[0].StreamTitle,
       });
     }
     if (stats.icestats) {
@@ -66,11 +70,13 @@ export default function setup(app) {
         stats.icestats.source = [stats.icestats.source];
       }
       //console.log(stats.icestats.source)
-      let correctSource = stats.icestats.source.find(s => new URL(s.listenurl).pathname == url.pathname);
+      let correctSource = stats.icestats.source.find(
+        (s:any) => new URL(s.listenurl).pathname == url.pathname,
+      );
       if (correctSource && correctSource.title) {
-        let result = {
-          implementation: SUPPORTED_SERVERS.ICECAST.description,
-          nowPlaying: correctSource.title
+        let result: ApiResponse = {
+          implementation: SUPPORTED_SERVERS.ICECAST.description!,
+          nowPlaying: correctSource.title,
         };
         if (correctSource.artist) {
           result.artist = correctSource.artist;
@@ -84,7 +90,8 @@ export default function setup(app) {
       res.header('etag', statsFetcher.historyEtag);
       if (req.headers['if-none-match'] == statsFetcher.historyEtag) {
         console.log('not modified');
-        return res.status(304).send();
+        res.status(304).send();
+        return;
       }
     }
     if (stats.history) {
@@ -93,13 +100,13 @@ export default function setup(app) {
         nowPlaying: stats.history[0].MetaTitle,
         artist: stats.history[0].MetaArtist,
         title: stats.history[0].MetaSong,
-        listenedAt: Math.round(new Date(stats.history[0].InsertDate) / 1000)
+        listenedAt: Math.round(Date.parse(stats.history[0].InsertDate) / 1000),
       });
     }
     if (stats.icy) {
       implResults.push({
         implementation: SUPPORTED_SERVERS.STREAM_ICY.description,
-        nowPlaying: stats.icy.StreamTitle
+        nowPlaying: stats.icy.StreamTitle,
       });
     }
     if (stats.ogg && stats.ogg.TITLE && stats.ogg.ARTIST) {
@@ -107,27 +114,33 @@ export default function setup(app) {
         implementation: SUPPORTED_SERVERS.STREAM_OGG.description,
         artist: stats.ogg.ARTIST,
         title: stats.ogg.TITLE,
-        nowPlaying: `${stats.ogg.ARTIST} - ${stats.ogg.TITLE}`
+        nowPlaying: `${stats.ogg.ARTIST} - ${stats.ogg.TITLE}`,
       });
     }
 
     let implResult = implResults[0];
 
     if (
-      implResults.some(i =>
-        [SUPPORTED_SERVERS.SHOUTCAST.description, SUPPORTED_SERVERS.SHOUTCAST_LEG.description, SUPPORTED_SERVERS.ICECAST.description, SUPPORTED_SERVERS.STREAMONKEY.description].includes(
-          i.implementation
-        )
+      implResults.some((i) =>
+        [
+          SUPPORTED_SERVERS.SHOUTCAST.description,
+          SUPPORTED_SERVERS.SHOUTCAST_LEG.description,
+          SUPPORTED_SERVERS.ICECAST.description,
+          SUPPORTED_SERVERS.STREAMONKEY.description,
+        ].includes(i.implementation),
       )
     ) {
       // prefer stats endpoints over stream metadata
       implResult = implResults
-        .filter(i =>
-          [SUPPORTED_SERVERS.SHOUTCAST.description, SUPPORTED_SERVERS.SHOUTCAST_LEG.description, SUPPORTED_SERVERS.ICECAST.description, SUPPORTED_SERVERS.STREAMONKEY.description].includes(
-            i.implementation
-          )
+        .filter((i) =>
+          [
+            SUPPORTED_SERVERS.SHOUTCAST.description,
+            SUPPORTED_SERVERS.SHOUTCAST_LEG.description,
+            SUPPORTED_SERVERS.ICECAST.description,
+            SUPPORTED_SERVERS.STREAMONKEY.description,
+          ].includes(i.implementation),
         )
-        .sort(i => (i.implementation == SUPPORTED_SERVERS.SHOUTCAST.description ? 1 : 0))[0];
+        .sort((i) => (i.implementation == SUPPORTED_SERVERS.SHOUTCAST.description ? 1 : 0))[0];
     }
     console.log(implResults, '=>', implResult);
     res.send(implResult);

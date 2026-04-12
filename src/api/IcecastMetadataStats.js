@@ -17,13 +17,13 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
-import { IcecastReadableStream } from "icecast-metadata-js";
+import { IcecastReadableStream } from 'icecast-metadata-js';
 
 const noOp = () => {};
 
-const STOPPED = "stopped";
-const RUNNING = "running";
-const FETCHING = "fetching";
+const STOPPED = 'stopped';
+const RUNNING = 'running';
+const FETCHING = 'fetching';
 
 const p = new WeakMap();
 
@@ -83,29 +83,33 @@ const parseIntNanToNull = (string) => {
   return result;
 };
 
+/**
+ * @typedef {object} options
+ * @property {Array} [sources] List of sources to automatically query ["icy", "ogg", "icestats", "stats", "sevenhtml", "nextsongs"]
+ * @property {number} [interval] Time in seconds to wait between automatically queries
+ * @property {URL} [icestatsEndpoint] Endpoint for the `status-json.xsl` source
+ * @property {URL} [statsEndpoint] Endpoint for the `stats` source
+ * @property {URL} [nextsongsEndpoint] Endpoint for the `nextsongs` source
+ * @property {URL} [sevenhtmlEndpoint] Endpoint for the `7.html` source
+ * @property {number} [icyMetaInt] Manually sets the ICY metadata interval
+ * @property {string} [icyCharacterEncoding] Character encoding to use for ICY metadata (defaults to "utf-8")
+ * @property {number} [icyDetectionTimeout] Time in milliseconds to search for ICY metadata
+ * @property {string} [streamonkeySessionId] StreaMonkey Streaming Session ID
+ * @property {string} [historyEtag] last ETag header 
+ * @property {Function} [onStats] Called when the automatic query completes
+ * @property {Function} [onStatsFetch] Called when the automatic query begins
+ */
+
 export default class IcecastMetadataStats {
   /**
    * @constructor
    * @param {URL} endpoint Stream endpoint
-   * @param {object} [options] Options object
-   *
-   * @callback [options.onStats] Called when the automatic query completes
-   * @callback [options.onStatsFetch] Called when the automatic query begins
-   * @param {Array} [options.sources] List of sources to automatically query ["icy", "ogg", "icestats", "stats", "sevenhtml", "nextsongs"]
-   * @param {number} [options.interval] Time in seconds to wait between automatically queries
-   * @param {URL} [options.icestatsEndpoint] Endpoint for the `status-json.xsl` source
-   * @param {URL} [options.statsEndpoint] Endpoint for the `stats` source
-   * @param {URL} [options.nextsongsEndpoint] Endpoint for the `nextsongs` source
-   * @param {URL} [options.sevenhtmlEndpoint] Endpoint for the `7.html` source
-   * @param {number} [options.icyMetaInt] Manually sets the ICY metadata interval
-   * @param {string} [options.icyCharacterEncoding] Character encoding to use for ICY metadata (defaults to "utf-8")
-   * @param {number} [options.icyDetectionTimeout] Time in milliseconds to search for ICY metadata
-   * @param {string} [options.streamonkeySessionId] StreaMonkey Streaming Session ID
+   * @param {options} [options] Options object
    */
   constructor(endpoint, options = {}) {
-    const serverPath = endpoint.split("/").slice(0, -1).join("/");
-    let ep = endpoint.split("/").slice(0, 4).join("/");
-    let q = ep.indexOf("?");
+    const serverPath = endpoint.toString().split('/').slice(0, -1).join('/');
+    let ep = endpoint.toString().split('/').slice(0, 4).join('/');
+    let q = ep.indexOf('?');
     if (q > 0) ep = ep.substring(0, q);
 
     // prettier-ignore
@@ -139,8 +143,7 @@ export default class IcecastMetadataStats {
   }
 
   static xml2Json(xml) {
-    const deserialize = xml =>
-      new DOMParser().parseFromString(xml, "application/xml");
+    const deserialize = (xml) => new DOMParser().parseFromString(xml, 'application/xml');
 
     const serialize = (element) => {
       if (!element.children.length) {
@@ -259,9 +262,21 @@ export default class IcecastMetadataStats {
   }
 
   /**
+   * @typedef fetchResult
+   * @property {any} [icestats] Results of the `icestats` source, if successful and requested.
+   * @property {any} [sevenhtml] Results of the `sevenhtml` source, if successful and requested.
+   * @property {any} [stats] Results of the `stats` source, if successful and requested.
+   * @property {any} [nextsongs] Results of the `nextsongs` source, if successful and requested.
+   * @property {any} [icy] Results of the `icy` source, if successful and requested.
+   * @property {any} [ogg] Results of the `ogg` source, if successful and requested.
+   * @property {any} [streamonkey] Results of the `streamonkey` source, if successful and requested.
+   * @property {any} [history] Results of the `history` source, if successful and requested.
+   */
+
+  /**
    * @description Manually fetches stats from the sources passed in to the `options.sources` parameter
    * @async
-   * @returns {object} Object containing the stats from the sources
+   * @returns {Promise<fetchResult>} Object containing the stats from the sources
    */
   async fetch() {
     if (p.get(this)[state] !== FETCHING) {
@@ -271,27 +286,20 @@ export default class IcecastMetadataStats {
       p.get(this)[onStatsFetch](p.get(this)[sources]);
 
       const promises = [];
-      if (p.get(this)[sources].includes("icestats"))
-        promises.push(this.getIcestats());
-      if (p.get(this)[sources].includes("sevenhtml"))
-        promises.push(this.getSevenhtml());
-      if (p.get(this)[sources].includes("stats"))
-        promises.push(this.getStats());
-      if (p.get(this)[sources].includes("nextsongs"))
-        promises.push(this.getNextsongs());
-      if (p.get(this)[sources].includes("icy"))
-        promises.push(this.getIcyMetadata());
-      if (p.get(this)[sources].includes("ogg"))
-        promises.push(this.getOggMetadata());
-      if (p.get(this)[sources].includes("streamonkey"))
-        promises.push(this.getStreamonkey());
-      if (p.get(this)[sources].includes("history"))
-        promises.push(this.getHistory());
+      if (p.get(this)[sources].includes('icestats')) promises.push(this.getIcestats());
+      if (p.get(this)[sources].includes('sevenhtml')) promises.push(this.getSevenhtml());
+      if (p.get(this)[sources].includes('stats')) promises.push(this.getStats());
+      if (p.get(this)[sources].includes('nextsongs')) promises.push(this.getNextsongs());
+      if (p.get(this)[sources].includes('icy')) promises.push(this.getIcyMetadata());
+      if (p.get(this)[sources].includes('ogg')) promises.push(this.getOggMetadata());
+      if (p.get(this)[sources].includes('streamonkey')) promises.push(this.getStreamonkey());
+      if (p.get(this)[sources].includes('history')) promises.push(this.getHistory());
 
-      const stats = await Promise.all(promises).then(stats => stats.reduce((acc, stat) => ({ ...acc, ...stat }), {}));
+      const stats = await Promise.all(promises).then((stats) =>
+        stats.reduce((acc, stat) => ({ ...acc, ...stat }), {}),
+      );
 
-      p.get(this)[state] =
-        p.get(this)[state] !== FETCHING ? p.get(this)[state] : oldState;
+      p.get(this)[state] = p.get(this)[state] !== FETCHING ? p.get(this)[state] : oldState;
 
       return stats;
     }
@@ -300,14 +308,17 @@ export default class IcecastMetadataStats {
   /**
    * @description Fetches the data from the `/status-json.xsl` endpoint
    * @async
-   * @returns {object} Object containing results of `/status-json.xsl`
+   * @returns {Promise<object>} Object containing results of `/status-json.xsl`
    */
   async getIcestats() {
     return this[fetchStats]({
       status: icestatsFetchStatus,
       endpoint: icestatsEndpoint,
       controller: icestatsController,
-      mapper: res => (/^(?:text|application)\/json/.test(res.headers.get("content-type")) ? res.json() : undefined)
+      mapper: (res) =>
+        /^(?:text|application)\/json/.test(res.headers.get('content-type'))
+          ? res.json()
+          : undefined,
     }).then((stats) => ({ icestats: stats && stats.icestats }));
   }
 
@@ -325,7 +336,7 @@ export default class IcecastMetadataStats {
   /**
    * @description Fetches the data from the `/7.html` endpoint
    * @async
-   * @returns {object} Object containing results of `/7.html`
+   * @returns {Promise<object>} Object containing results of `/7.html`
    */
   async getSevenhtml() {
     // TODO: request correct sid (works only if input url ist /stream/<sid>)
@@ -334,11 +345,9 @@ export default class IcecastMetadataStats {
       endpoint: sevenhtmlEndpoint,
       controller: sevenhtmlController,
       mapper: async (res) =>
-        /^text\/html/.test(res.headers.get("content-type"))
+        /^text\/html/.test(res.headers.get('content-type'))
           ? (await res.text()).match(/(.*?)<\/body>/gi).map((s) => {
-              const stats = s
-                .match(/(<body>|,)(?<stats>.*)<\/body>/i)
-                .groups.stats.split(",");
+              const stats = s.match(/(<body>|,)(?<stats>.*)<\/body>/i).groups.stats.split(',');
 
               return stats.length === 7
                 ? {
@@ -368,7 +377,7 @@ export default class IcecastMetadataStats {
   /**
    * @description Fetches the data from the `/stats` endpoint
    * @async
-   * @returns {object} Object containing results of `/stats`
+   * @returns {Promise<object>} Object containing results of `/stats`
    */
   async getStats() {
     // TODO: request correct sid (validate if input url matches /stream/<sid> or, after request, if STREAMPATH matches)
@@ -377,9 +386,10 @@ export default class IcecastMetadataStats {
       endpoint: statsEndpoint,
       controller: statsController,
       mapper: async (res) =>
-        (/^(?:text|application)\/xml/.test(res.headers.get("content-type")) ? IcecastMetadataStats.xml2Json(await res.text()).SHOUTCASTSERVER : undefined),
+        /^(?:text|application)\/xml/.test(res.headers.get('content-type'))
+          ? IcecastMetadataStats.xml2Json(await res.text()).SHOUTCASTSERVER
+          : undefined,
     }).then((stats) => ({
-
       stats,
     }));
   }
@@ -388,7 +398,7 @@ export default class IcecastMetadataStats {
   /**
    * @description Fetches the data from the `/nextsongs` endpoint
    * @async
-   * @returns {object} Object containing results of `/nextsongs`
+   * @returns {Promise<object>} Object containing results of `/nextsongs`
    */
   async getNextsongs() {
     return this[fetchStats]({
@@ -396,8 +406,9 @@ export default class IcecastMetadataStats {
       endpoint: nextsongsEndpoint,
       controller: nextsongsController,
       mapper: async (res) =>
-        (/^(?:text|application)\/xml/.test(res.headers.get("content-type")) ? IcecastMetadataStats.xml2Json(await res.text()).SHOUTCASTSERVER
-          .NEXTSONGS : undefined),
+        /^(?:text|application)\/xml/.test(res.headers.get('content-type'))
+          ? IcecastMetadataStats.xml2Json(await res.text()).SHOUTCASTSERVER.NEXTSONGS
+          : undefined,
     }).then((nextsongs) => ({
       nextsongs,
     }));
@@ -405,13 +416,12 @@ export default class IcecastMetadataStats {
 
   async getStreamonkey() {
     if (!p.get(this)[streamonkeySessionId]) {
-      console.log("no sesid");
+      console.log('no sesid');
       p.get(this)[streamonkeySessionId] = await this[fetchStats]({
         status: streamonkeyFetchStatus,
         endpoint: streamEndpoint,
         controller: streamonkeyController,
-        mapper: async (res) => 
-          res.headers.get("sessionid"),
+        mapper: async (res) => res.headers.get('sessionid'),
       });
     }
 
@@ -422,46 +432,46 @@ export default class IcecastMetadataStats {
       controller: streamonkeyController,
       headers: {
         Cookie: `streamingsession=${p.get(this)[streamonkeySessionId]}`,
-        "Accept-Encoding": "gzip",
+        'Accept-Encoding': 'gzip',
       },
       mapper: (r) =>
-        (/^(?:text|application)\/json/.test(r.headers.get('content-type')) ? r.json() : undefined),
-    })
-      .then(async (r) => ({ streamonkey: r }));
+        /^(?:text|application)\/json/.test(r.headers.get('content-type')) ? r.json() : undefined,
+    }).then(async (r) => ({ streamonkey: r }));
   }
 
   async getHistory() {
     let headers = {
-      "Accept-Encoding": "gzip",
+      'Accept-Encoding': 'gzip',
     };
-    if (p.get(this)[historyEtag]) headers["If-None-Match"] = p.get(this)[historyEtag];
+    if (p.get(this)[historyEtag]) headers['If-None-Match'] = p.get(this)[historyEtag];
     return this[fetchStats]({
       status: historyFetchStatus,
       endpoint: historyEndpoint,
       controller: historyController,
       mapper: (r) => {
-        if (r.status !== 304) p.get(this)[historyEtag] = r.headers.get("etag") ?? null;
-        return /^(?:text|application)\/json/.test(r.headers.get("content-type")) ? r.json() : undefined;
+        if (r.status !== 304) p.get(this)[historyEtag] = r.headers.get('etag') ?? null;
+        return /^(?:text|application)\/json/.test(r.headers.get('content-type'))
+          ? r.json()
+          : undefined;
       },
       headers,
-    })
-      .then((r) => ({ history: r }));
+    }).then((r) => ({ history: r }));
   }
 
   /**
    * @description Fetches the first ICY metadata update from the stream
    * @async
-   * @returns {object} Object containing ICY metadata
+   * @returns {Promise<object>} Object containing ICY metadata
    */
   async getIcyMetadata() {
     return this[getStreamMetadata]({
       status: icyFetchStatus,
       endpoint: streamEndpoint,
       controller: icyController,
-      metadataType: "icy",
+      metadataType: 'icy',
       headers: {
-        "Icy-MetaData": 1,
-        "User-Agent": "Some agent there",
+        'Icy-MetaData': 1,
+        'User-Agent': 'Some agent there',
       },
     });
   }
@@ -469,24 +479,18 @@ export default class IcecastMetadataStats {
   /**
    * @description Fetches the first Ogg metadata update from the stream
    * @async
-   * @returns {object} Object containing Ogg metadata
+   * @returns {Promise<object>} Object containing Ogg metadata
    */
   async getOggMetadata() {
     return this[getStreamMetadata]({
       status: oggFetchStatus,
       endpoint: streamEndpoint,
       controller: oggController,
-      metadataType: "ogg",
+      metadataType: 'ogg',
     });
   }
 
-  async [getStreamMetadata]({
-    status,
-    endpoint,
-    controller,
-    headers,
-    metadataType,
-  }) {
+  async [getStreamMetadata]({ status, endpoint, controller, headers, metadataType }) {
     return this[fetchStats]({
       status,
       endpoint,
@@ -516,10 +520,10 @@ export default class IcecastMetadataStats {
     if (!p.get(this)[status]) {
       p.get(this)[status] = true;
       return fetch(p.get(this)[endpoint], {
-        method: "GET",
+        method: 'GET',
         headers,
         signal: p.get(this)[controller].signal,
-        timeout: 2000
+        timeout: 2000,
       })
         .then((res) => {
           if (!res.ok && !res.status == 304) {
@@ -529,7 +533,7 @@ export default class IcecastMetadataStats {
         })
         .then(mapper)
         .catch((e) => {
-          if (e.name !== "AbortError") {
+          if (e.name !== 'AbortError') {
             console.warn(`Failed to fetch ${p.get(this)[endpoint]}`, e);
           }
         })
