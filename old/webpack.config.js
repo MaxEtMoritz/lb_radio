@@ -14,7 +14,7 @@ const config = {
   output: {
     path: resolve(__dirname, 'client/dist'),
     assetModuleFilename: isProduction ? 'assets/[hash][ext][query]' : 'assets/[name][ext][query]',
-    clean: true
+    clean: true,
   },
   plugins: [
     // Add your plugins here
@@ -26,15 +26,13 @@ const config = {
       },
       js: {
         // output filename of compiled JavaScript
-        filename: 'js/[name].[contenthash:8].js'
+        filename: 'js/[name].[contenthash:8].js',
       },
       css: {
         // output filename of extracted CSS
         filename: 'css/[name].[contenthash:8].css'
       },
-      "loaderOptions":{
-        "preprocessor": "ejs"
-      }
+      preprocessor: 'ejs'
     })
   ],
   module: {
@@ -62,12 +60,12 @@ const config = {
       if (!devServer) throw new Error('devServer is not defined');
 
       if (import.meta.webpackHot) import.meta.webpackHot.accept();
-      console.debug(import.meta)
+      console.debug(import.meta);
 
       setup(devServer.app);
 
       return middlewares;
-    },
+    }
     //watchFiles: ['client/src/**/*.js', 'server/**/*.js', 'client/**/*.html', 'client/**/*.css']
   }
 };
@@ -76,6 +74,10 @@ if (isProduction) {
   config.mode = 'production';
 } else {
   config.mode = 'development';
+  config.devtool = [
+    { type: "javascript", use: "source-map" },
+    { type: "css", use: "inline-source-map" },
+  ]
 }
 
 export default config;
